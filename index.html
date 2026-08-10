@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>T1L BOM QR CHECK</title>
+
+<script src="https://unpkg.com/html5-qrcode"
+        type="text/javascript"></script>
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f6f8;
+    color: #17202a;
+}
+
+.container {
+    max-width: 520px;
+    margin: auto;
+    padding: 18px;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 18px;
+}
+
+.header h1 {
+    margin: 5px 0;
+    font-size: 24px;
+}
+
+.header p {
+    margin: 5px 0;
+    color: #667085;
+    font-size: 14px;
+}
+
+.card {
+    background: white;
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 15px;
+    border: 1px solid #d9dee7;
+}
+
+label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 6px;
+}
+
+select,
+input,
+button {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 16px;
+}
+
+select,
+input {
+    border: 1px solid #c9ced8;
+    background: white;
+}
+
+button {
+    border: none;
+    background: #1f6feb;
+    color: white;
+    font-weight: bold;
+    margin-top: 12px;
+}
+
+button.stop {
+    background: #666;
+}
+
+button.next {
+    background: #16803c;
+}
+
+button:active {
+    transform: scale(0.99);
+}
+
+#reader {
+    width: 100%;
+    margin-top: 15px;
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+.status {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #667085;
+}
+
+.result {
+    padding: 18px;
+    border-radius: 14px;
+    margin-top: 15px;
+}
+
+.pass {
+    background: #eaf6ec;
+    border: 3px solid #16803c;
+}
+
+.fail {
+    background: #fff0ef;
+    border: 3px solid #c62828;
+}
+
+.result-title {
+    font-size: 26px;
+    font-weight: bold;
+    margin-bottom: 14px;
+}
+
+.row {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 8px 0;
+    border-bottom: 1px solid #ddd;
+}
+
+.row:last-child {
+    border-bottom: none;
+}
+
+.row-label {
+    color: #555;
+}
+
+.row-value {
+    font-weight: bold;
+    text-align: right;
+    word-break: break-word;
+}
+
+.zone-box {
+    margin-top: 14px;
+    padding: 12px;
+    background: white;
+    border: 1px solid #b8d8bf;
+    border-radius: 10px;
+}
+
+.zone-title {
+    font-size: 14px;
+    color: #555;
+}
+
+.zone-value {
+    margin-top: 4px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #16803c;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.error {
+    color: #c62828;
+    font-weight: bold;
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+    <div class="header">
+
+        <h1>📱 T1L BOM QR CHECK</h1>
+
+        <p>
+            Model + Part Number Verification
+        </p>
+
+    </div>
+
+
+
+    <!-- MODEL / AUDITOR -->
+
+    <div class="card">
+
+
+        <label for="model">
+            Model
+        </label>
+
+        <select id="model">
+
+            <option value="T1L">
+                T1L
+            </option>
+
+        </select>
+
+
+
+        <label
+            for="auditor"
+            style="margin-top:15px;">
+
+            Auditor
+
+        </label>
+
+        <input
+            id="auditor"
+            type="text"
+            placeholder="Enter auditor name">
+
+
+
+        <button
+            id="scanButton">
+
+            📷 SCAN QR CODE
+
+        </button>
+
+
+
+        <button
+            id="stopButton"
+            class="stop hidden">
+
+            STOP SCANNER
+
+        </button>
+
+
+
+        <div id="reader"></div>
+
+
+        <div
+            id="scanStatus"
+            class="status">
+
+            Scanner ready.
+
+        </div>
+
+
+    </div>
+
+
+
+    <!-- MANUAL TEST -->
+
+    <div class="card">
+
+
+        <label for="manualPart">
+
+            Manual Part No. Test
+
+        </label>
+
+
+        <input
+            id="manualPart"
+            type="text"
+            placeholder="Example: 806027240AA"
+            autocomplete="off">
+
+
+        <button
+            id="manualButton">
+
+            CHECK PART
+
+        </button>
+
+
+    </div>
+
+
+
+    <!-- RESULT -->
+
+    <div id="result"></div>
+
+
+</div>
+
+
+
+<script>
+
+
+/* =====================================================
+   IMPORTANT
+   =====================================================
+
+   This is the Google Apps Script Web App API.
+
+   We will connect this URL after creating
+   the API function in Apps Script.
+===================================================== */
+
+const API_URL =
+    "https://script.google.com/macros/s/AKfycbz7tm9naP7uwALSNv-yrHPnUbwymPFEWua-txwV5HJoZlS8imoCs-u4ajOrWX4Lyu2j/exec";
+
+
+let scanner = null;
+
+let lastScanned = "";
+
+
+
+/* =====================================================
+   HTML ESCAPE
+===================================================== */
+
+function escapeHtml(value) {
+
+    return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+}
+
+
+
+/* =====================================================
+   CHECK PART
+===================================================== */
+
+async function checkPart(partNo) {
+
+
+    partNo =
+        String(partNo || "")
+        .trim()
+        .toUpperCase();
+
+
+    if (!partNo) {
+
+        alert(
+            "Please scan or enter a Part No."
+        );
+
+        return;
+
+    }
+
+
+    const model =
+        document.getElementById("model").value;
+
+
+    const auditor =
+        document.getElementById("auditor").value;
+
+
+    document.getElementById(
+        "scanStatus"
+    ).textContent =
+        "Checking BOM...";
+
+
+    try {
+
+
+        const url =
+            API_URL +
+            "?action=checkPart" +
+            "&model=" +
+            encodeURIComponent(model) +
+            "&partNo=" +
+            encodeURIComponent(partNo) +
+            "&auditor=" +
+            encodeURIComponent(auditor);
+
+
+        const response =
+            await fetch(url);
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Server error: " +
+                response.status
+            );
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        if (data.result === "PASS") {
+
+            showPASS(data);
+
+        }
+
+        else {
+
+            showFAIL(data);
+
+        }
+
+
+        document.getElementById(
+            "scanStatus"
+        ).textContent =
+            "Check completed.";
+
+
+    }
+
+
+    catch(error) {
+
+
+        console.error(error);
+
+
+        document.getElementById(
+            "scanStatus"
+        ).innerHTML =
+
+            '<span class="error">' +
+            'Unable to connect to BOM server.' +
+            '</span>';
+
+
+        alert(
+            "Unable to connect to BOM system.\n\n" +
+            error.message
+        );
+
+    }
+
+}
+
+
+
+/* =====================================================
+   PASS
+===================================================== */
+
+function showPASS(data) {
+
+
+    const zones =
+        data.zones &&
+        data.zones.length > 0
+
+        ? data.zones.join(", ")
+
+        : "Not specified";
+
+
+    document.getElementById(
+        "result"
+    ).innerHTML = `
+
+
+        <div class="result pass">
+
+
+            <div class="result-title">
+
+                🟢 BOM PASS
+
+            </div>
+
+
+
+            <div class="row">
+
+                <div class="row-label">
+                    Model
+                </div>
+
+                <div class="row-value">
+                    ${escapeHtml(data.model)}
+                </div>
+
+            </div>
+
+
+
+            <div class="row">
+
+                <div class="row-label">
+                    Part No.
+                </div>
+
+                <div class="row-value">
+                    ${escapeHtml(data.partNo)}
+                </div>
+
+            </div>
+
+
+
+            <div class="row">
+
+                <div class="row-label">
+                    Part Name
+                </div>
+
+                <div class="row-value">
+                    ${escapeHtml(data.nameEn)}
+                </div>
+
+            </div>
+
+
+
+            <div class="row">
+
+                <div class="row-label">
+                    中文名称
+                </div>
+
+                <div class="row-value">
+                    ${escapeHtml(data.nameCn)}
+                </div>
+
+            </div>
+
+
+
+            <div class="zone-box">
+
+                <div class="zone-title">
+                    Applicable Zone(s)
+                </div>
+
+                <div class="zone-value">
+                    ${escapeHtml(zones)}
+                </div>
+
+            </div>
+
+
+
+            <div class="row">
+
+                <div class="row-label">
+                    Required Qty
+                </div>
+
+                <div class="row-value">
+                    ${escapeHtml(data.qty)}
+                </div>
+
+            </div>
+
+
+
+            <button
+                class="next"
+                onclick="prepareNextScan()">
+
+                📷 SCAN NEXT PART
+
+            </button>
+
+
+        </div>
+
+    `;
+
+}
+
+
+
+/* =====================================================
+   FAIL
+===================================================== */
+
+function showFAIL(data) {
+
+
+    document.getElementById(
+        "result"
+    ).innerHTML = `
+
+
+        <div class="result fail">
+
+
+            <div class="result-title">
+
+                🔴 WRONG PART
+
+            </div>
+
+
+
+            <div class="row">
+
+                <div class="row-label">
+                    Model
+                </div>
+
+                <div class="row-value">
+                    ${escapeHtml(data.model)}
+                </div>
+
+            </div>
+
+
+
+            <div class="row">
+
+                <div class="row-label">
+                    Scanned Part
+                </div>
+
+                <div class="row-value">
+                    ${escapeHtml(data.partNo)}
+                </div>
+
+            </div>
+
+
+
+            <br>
+
+
+            <strong>
+
+                ⚠ DO NOT INSTALL
+
+            </strong>
+
+
+            <br><br>
+
+
+            This Part No. does not belong
+            to the selected model BOM.
+
+
+            <button
+                class="next"
+                onclick="prepareNextScan()">
+
+                📷 SCAN NEXT PART
+
+            </button>
+
+
+        </div>
+
+    `;
+
+}
+
+
+
+/* =====================================================
+   START CAMERA
+===================================================== */
+
+async function startScanner() {
+
+
+    const reader =
+        document.getElementById(
+            "reader"
+        );
+
+
+    reader.innerHTML = "";
+
+
+    document.getElementById(
+        "scanButton"
+    ).classList.add(
+        "hidden"
+    );
+
+
+    document.getElementById(
+        "stopButton"
+    ).classList.remove(
+        "hidden"
+    );
+
+
+    document.getElementById(
+        "scanStatus"
+    ).textContent =
+        "Requesting camera...";
+
+
+    try {
+
+
+        scanner =
+            new Html5Qrcode(
+                "reader"
+            );
+
+
+        await scanner.start(
+
+
+            {
+                facingMode: {
+                    ideal: "environment"
+                }
+            },
+
+
+            {
+                fps: 10,
+
+                qrbox: {
+                    width: 250,
+                    height: 250
+                }
+            },
+
+
+            function(decodedText) {
+
+
+                if (
+                    decodedText ===
+                    lastScanned
+                ) {
+
+                    return;
+
+                }
+
+
+                lastScanned =
+                    decodedText;
+
+
+                document.getElementById(
+                    "scanStatus"
+                ).textContent =
+                    "QR detected: " +
+                    decodedText;
+
+
+                checkPart(
+                    decodedText
+                );
+
+
+                setTimeout(
+                    function() {
+
+                        lastScanned = "";
+
+                    },
+                    1500
+                );
+
+
+            },
+
+
+            function(errorMessage) {
+
+                /* Normal scanning errors ignored */
+
+            }
+
+        );
+
+
+        document.getElementById(
+            "scanStatus"
+        ).textContent =
+            "Camera active — point at QR code.";
+
+
+    }
+
+
+    catch(error) {
+
+
+        console.error(error);
+
+
+        document.getElementById(
+            "scanStatus"
+        ).innerHTML =
+
+            '<span class="error">' +
+
+            '❌ Camera could not start.<br>' +
+
+            'Please check browser camera permission.' +
+
+            '</span>';
+
+
+        stopScanner();
+
+    }
+
+}
+
+
+
+/* =====================================================
+   STOP CAMERA
+===================================================== */
+
+async function stopScanner() {
+
+
+    if (scanner) {
+
+
+        try {
+
+            await scanner.stop();
+
+            scanner.clear();
+
+        }
+
+        catch(error) {
+
+            console.log(error);
+
+        }
+
+
+        scanner = null;
+
+    }
+
+
+    document.getElementById(
+        "scanButton"
+    ).classList.remove(
+        "hidden"
+    );
+
+
+    document.getElementById(
+        "stopButton"
+    ).classList.add(
+        "hidden"
+    );
+
+
+    document.getElementById(
+        "scanStatus"
+    ).textContent =
+        "Scanner ready.";
+
+}
+
+
+
+/* =====================================================
+   NEXT SCAN
+===================================================== */
+
+function prepareNextScan() {
+
+
+    document.getElementById(
+        "result"
+    ).innerHTML = "";
+
+
+    document.getElementById(
+        "manualPart"
+    ).value = "";
+
+
+    startScanner();
+
+}
+
+
+
+/* =====================================================
+   BUTTON EVENTS
+===================================================== */
+
+document.getElementById(
+    "scanButton"
+).addEventListener(
+    "click",
+    startScanner
+);
+
+
+document.getElementById(
+    "stopButton"
+).addEventListener(
+    "click",
+    stopScanner
+);
+
+
+document.getElementById(
+    "manualButton"
+).addEventListener(
+    "click",
+    function() {
+
+        checkPart(
+            document.getElementById(
+                "manualPart"
+            ).value
+        );
+
+    }
+);
+
+
+document.getElementById(
+    "manualPart"
+).addEventListener(
+    "keydown",
+    function(event) {
+
+        if (
+            event.key === "Enter"
+        ) {
+
+            checkPart(
+                this.value
+            );
+
+        }
+
+    }
+);
+
+</script>
+
+
+</body>
+
+</html>
